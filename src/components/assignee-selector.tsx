@@ -34,7 +34,7 @@ export function AssigneeSelector({ assignees, value, onChange }: AssigneeSelecto
         <label key={user.id} className="flex items-center gap-2 text-sm text-foreground/80">
           <Checkbox
             checked={value.includes(user.login)}
-            onCheckedChange={() => handleToggle(user.login)}
+            onChange={() => handleToggle(user.login)}
             className="h-4 w-4"
           />
           <span className="truncate">
