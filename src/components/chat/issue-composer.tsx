@@ -11,6 +11,8 @@ import type { RepoOption } from "@/server-actions/repos";
 import { generateIssue } from "@/server-actions/ai/generate-issue";
 import { reindexRepo } from "@/server-actions/ai/reindex-repo";
 import { useToast } from "@/components/ui/use-toast";
+import { chatIssue } from "@/server-actions/ai/chat-issue";
+import type { ChatMessage } from "@/types/chat";
 
 type IssueComposerProps = {
   repositories: RepoOption[];
@@ -30,6 +32,7 @@ export function IssueComposer({ repositories }: IssueComposerProps) {
   const [isPending, startTransition] = React.useTransition();
   const [isReindexing, startReindex] = React.useTransition();
   const { toast } = useToast();
+  const [messages, setMessages] = React.useState<ChatMessage[]>([]);
 
   const canSubmit = repo.length > 0 && description.trim().length > 0;
 
@@ -37,9 +40,11 @@ export function IssueComposer({ repositories }: IssueComposerProps) {
     setError(null);
     startTransition(async () => {
       setResult(null);
-      const response = await generateIssue({
+      const history = messages;
+      const response = await chatIssue({
         repoFullName: repo,
-        description,
+        message: description,
+        history,
       });
 
       if (!response.ok) {
@@ -54,14 +59,30 @@ export function IssueComposer({ repositories }: IssueComposerProps) {
       }
 
       setResult(response.data);
+      const assistantContent = [
+        `**${response.data.title}**`,
+        "",
+        response.data.body,
+        "",
+        response.data.steps?.length ? `Steps:\n${response.data.steps.map((s) => `- ${s}`).join("\n")}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: description },
+        { role: "assistant", content: assistantContent },
+      ]);
     });
-  }, [repo, description, toast]);
+  }, [repo, description, toast, messages]);
 
   const handleClear = React.useCallback(() => {
     setRepo("");
     setDescription("");
     setResult(null);
     setError(null);
+    setMessages([]);
   }, []);
 
   const handleReindex = React.useCallback(() => {
@@ -86,12 +107,26 @@ export function IssueComposer({ repositories }: IssueComposerProps) {
   }, [repo, toast]);
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="repo">Repositório</Label>
-        <div className="grid gap-2">
-          <RepoSelect
-            repositories={repositories}
+      <div className="space-y-4">
+        {messages.length > 0 ? (
+          <div className="space-y-3 rounded-md border border-foreground/10 bg-foreground/5 p-3">
+            {messages.map((msg, idx) => (
+              <div key={`${msg.role}-${idx}`} className="space-y-1">
+                <div className="text-xs font-semibold text-foreground/60">
+                  {msg.role === "user" ? "Você" : "Assistente"}
+                </div>
+                <div className="prose prose-sm prose-invert text-foreground/80">
+                  <MarkdownPreview>{msg.content}</MarkdownPreview>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        <div className="space-y-2">
+          <Label htmlFor="repo">Repositório</Label>
+          <div className="grid gap-2">
+            <RepoSelect
+              repositories={repositories}
             value={repo}
             onValueChange={setRepo}
             id="repo"
