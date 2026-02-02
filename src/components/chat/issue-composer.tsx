@@ -10,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import type { RepoOption } from "@/server-actions/repos";
 import { ProjectSelect } from "@/components/project-select";
 import type { ProjectOption } from "@/server-actions/projects";
-import { generateIssue } from "@/server-actions/ai/generate-issue";
 import { reindexRepo } from "@/server-actions/ai/reindex-repo";
 import { useToast } from "@/components/ui/use-toast";
 import { chatIssue } from "@/server-actions/ai/chat-issue";
@@ -137,10 +136,17 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
       setAssigneeOptions([]);
       return;
     }
+    let cancelled = false;
+    setIsLoadingAssignees(true);
     fetchRepoAssignees(repo).then((list) => {
+      if (cancelled) return;
       setAssigneeOptions(list);
       setAssignees((prev) => prev.filter((login) => list.some((u) => u.login === login)));
+      setIsLoadingAssignees(false);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [repo]);
 
   const handleReindex = React.useCallback(() => {

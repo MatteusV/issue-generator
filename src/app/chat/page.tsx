@@ -22,8 +22,10 @@ export default async function ChatPage() {
     redirect("/");
   }
 
-  const repositories = await fetchUserRepos(session.accessToken);
-  const projects = await fetchUserProjects();
+  const [repositories, projects] = await Promise.all([
+    fetchUserRepos(session.accessToken),
+    fetchUserProjects(),
+  ]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
