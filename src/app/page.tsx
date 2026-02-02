@@ -26,14 +26,17 @@ const features = [
 export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-12 px-6 py-16 lg:flex-row lg:items-center">
+      <main
+        id="main-content"
+        className="mx-auto flex min-h-screen max-w-6xl flex-col gap-12 px-6 py-16 lg:flex-row lg:items-center"
+      >
         <section className="flex-1 space-y-6">
           <div className="space-y-3">
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-foreground/60">
               RF-01 · Autenticação
             </p>
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              Conecte sua conta GitHub
+            <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+              Conecte Sua Conta GitHub
             </h1>
             <p className="max-w-xl text-base text-foreground/70">
               Inicie a criação de issues com IA autenticando sua conta. O acesso
@@ -67,8 +70,12 @@ export default function Home() {
               <Label htmlFor="gh-domain">Domínio do GitHub</Label>
               <Input
                 id="gh-domain"
-                placeholder="https://github.suaempresa.com"
-                autoComplete="url"
+                name="githubDomain"
+                type="url"
+                inputMode="url"
+                placeholder="https://github.com/…"
+                autoComplete="off"
+                spellCheck={false}
               />
               <p className="text-xs text-foreground/50">
                 Use o domínio padrão do GitHub.com da sua organização.
@@ -79,7 +86,7 @@ export default function Home() {
               <form action={handleLoginWithGithub}>
                 <Button className="w-full" type="submit">
                   <GitHubIcon className="h-4 w-4" />
-                  Continuar com GitHub
+                  Entrar com GitHub
                 </Button>
               </form>
               <p className="text-xs text-foreground/50">
@@ -103,6 +110,7 @@ function GitHubIcon({ className }: { className?: string }) {
     <svg
       viewBox="0 0 24 24"
       aria-hidden="true"
+      focusable="false"
       className={className}
       fill="currentColor"
     >
