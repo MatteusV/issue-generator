@@ -1,4 +1,5 @@
 import { similaritySearch } from "@/lib/vector-store";
+import { resetVectorStore } from "@/lib/vector-store";
 
 export type RetrievedChunk = {
   content: string;
@@ -14,12 +15,27 @@ export async function retrieveContext(
   repoFullName: string,
   query: string,
 ): Promise<RetrievedChunk[]> {
-  const primary = await similaritySearch(repoFullName, query, TOP_K);
-  const schemaBoost = await similaritySearch(
-    repoFullName,
-    `${query} schema tables database prisma migration sql column`,
-    TOP_K_SCHEMA,
-  );
+  let primary: Awaited<ReturnType<typeof similaritySearch>> = [];
+  let schemaBoost: Awaited<ReturnType<typeof similaritySearch>> = [];
+
+  try {
+    primary = await similaritySearch(repoFullName, query, TOP_K);
+    schemaBoost = await similaritySearch(
+      repoFullName,
+      `${query} schema tables database prisma migration sql column`,
+      TOP_K_SCHEMA,
+    );
+  } catch (error) {
+    const message = (error as Error)?.message ?? "";
+    if (message.includes("vector dimensions")) {
+      console.error(
+        `[retriever] dimension mismatch; resetting store for ${repoFullName}`,
+      );
+      await resetVectorStore(repoFullName);
+      return [];
+    }
+    throw error;
+  }
 
   const merged = [...primary, ...schemaBoost];
 

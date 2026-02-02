@@ -31,7 +31,7 @@ async function ensureExtension() {
 function getEmbeddings() {
   return new OpenAIEmbeddings({
     apiKey: process.env.OPENAI_API_KEY,
-    model: "text-embedding-3-small",
+    model: "text-embedding-3-large",
   });
 }
 
