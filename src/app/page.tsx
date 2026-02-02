@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { signIn } from "@/auth";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 async function handleLoginWithGithub() {
   "use server";
@@ -30,7 +31,13 @@ export default function Home() {
         id="main-content"
         className="mx-auto flex min-h-screen max-w-6xl flex-col gap-12 px-6 py-16 lg:flex-row lg:items-center"
       >
+        <div className="w-full flex justify-end lg:hidden">
+          <ThemeToggle />
+        </div>
         <section className="flex-1 space-y-6">
+          <div className="hidden w-full justify-end lg:flex">
+            <ThemeToggle />
+          </div>
           <div className="space-y-3">
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-foreground/60">
               RF-01 · Autenticação

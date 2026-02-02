@@ -13,6 +13,7 @@ import { IssueComposer } from "@/components/chat/issue-composer";
 import { handleLogout } from "@/server-actions/logout";
 import { fetchUserRepos } from "@/server-actions/repos";
 import { fetchUserProjects } from "@/server-actions/projects";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default async function ChatPage() {
   const session = await auth();
@@ -48,6 +49,7 @@ export default async function ChatPage() {
                 Sair da Conta
               </Button>
             </form>
+            <ThemeToggle />
           </div>
         </header>
 
