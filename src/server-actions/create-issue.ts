@@ -13,6 +13,25 @@ type CreateIssueResult =
   | { ok: true; url: string }
   | { ok: false; error: string };
 
+function buildIssueBody(issue: IssueDraft) {
+  const parts: string[] = [];
+
+  parts.push("## Descrição & contexto do repositório");
+  parts.push(issue.body || "Sem descrição.");
+
+  if (issue.steps.length > 0) {
+    parts.push("\n## Passos sugeridos");
+    parts.push(issue.steps.map((s) => `- ${s}`).join("\n"));
+  }
+
+  if (issue.acceptanceCriteria.length > 0) {
+    parts.push("\n## Critérios de aceite");
+    parts.push(issue.acceptanceCriteria.map((c) => `- ${c}`).join("\n"));
+  }
+
+  return parts.filter(Boolean).join("\n");
+}
+
 export async function createIssueOnGithub(
   input: CreateIssueInput,
 ): Promise<CreateIssueResult> {
@@ -39,7 +58,7 @@ export async function createIssueOnGithub(
         },
         body: JSON.stringify({
           title: input.issue.title,
-          body: input.issue.body,
+          body: buildIssueBody(input.issue),
           labels: input.issue.labels,
         }),
       },
