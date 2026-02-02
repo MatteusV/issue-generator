@@ -8,18 +8,23 @@ import { Label } from "@/components/ui/label";
 import { MarkdownPreview } from "@/components/markdown-preview";
 import { Textarea } from "@/components/ui/textarea";
 import type { RepoOption } from "@/server-actions/repos";
+import { ProjectSelect } from "@/components/project-select";
+import type { ProjectOption } from "@/server-actions/projects";
 import { generateIssue } from "@/server-actions/ai/generate-issue";
 import { reindexRepo } from "@/server-actions/ai/reindex-repo";
 import { useToast } from "@/components/ui/use-toast";
 import { chatIssue } from "@/server-actions/ai/chat-issue";
+import { createIssueOnGithub } from "@/server-actions/create-issue";
 import type { ChatMessage } from "@/types/chat";
 
 type IssueComposerProps = {
   repositories: RepoOption[];
+  projects: ProjectOption[];
 };
 
-export function IssueComposer({ repositories }: IssueComposerProps) {
+export function IssueComposer({ repositories, projects }: IssueComposerProps) {
   const [repo, setRepo] = React.useState("");
+  const [projectId, setProjectId] = React.useState<string | undefined>();
   const [description, setDescription] = React.useState("");
   const [result, setResult] = React.useState<{
     title: string;
@@ -31,6 +36,7 @@ export function IssueComposer({ repositories }: IssueComposerProps) {
   const [error, setError] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
   const [isReindexing, startReindex] = React.useTransition();
+  const [isCreating, startCreate] = React.useTransition();
   const { toast } = useToast();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
 
@@ -85,6 +91,38 @@ export function IssueComposer({ repositories }: IssueComposerProps) {
     setMessages([]);
   }, []);
 
+  const handleCreateIssue = React.useCallback(() => {
+    if (!repo || !result) {
+      toast({
+        variant: "destructive",
+        title: "Selecione repositório",
+        description: "Gere a issue antes de criar no GitHub.",
+      });
+      return;
+    }
+    startCreate(async () => {
+      const response = await createIssueOnGithub({
+        repoFullName: repo,
+        issue: result,
+        projectId,
+      });
+
+      if (!response.ok) {
+        toast({
+          variant: "destructive",
+          title: "Erro ao criar issue",
+          description: response.error,
+        });
+        return;
+      }
+
+      toast({
+        title: "Issue criada",
+        description: response.url,
+      });
+    });
+  }, [repo, result, projectId, toast]);
+
   const handleReindex = React.useCallback(() => {
     if (!repo) return;
     setError(null);
@@ -122,11 +160,11 @@ export function IssueComposer({ repositories }: IssueComposerProps) {
             ))}
           </div>
         ) : null}
-        <div className="space-y-2">
-          <Label htmlFor="repo">Repositório</Label>
-          <div className="grid gap-2">
-            <RepoSelect
-              repositories={repositories}
+      <div className="space-y-2">
+        <Label htmlFor="repo">Repositório</Label>
+        <div className="grid gap-2">
+          <RepoSelect
+            repositories={repositories}
             value={repo}
             onValueChange={setRepo}
             id="repo"
@@ -135,6 +173,19 @@ export function IssueComposer({ repositories }: IssueComposerProps) {
             Apenas repositórios que você pode acessar aparecem aqui.
           </p>
         </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="project">Projeto do GitHub</Label>
+        <ProjectSelect
+          projects={projects}
+          value={projectId}
+          onValueChange={setProjectId}
+          id="project"
+          placeholder="Selecione um projeto (opcional)"
+        />
+        <p className="text-xs text-foreground/60">
+          Opcional: adiciona a issue criada ao projeto selecionado.
+        </p>
       </div>
       <div className="space-y-2">
         <Label htmlFor="prompt">Descrição da Demanda</Label>
@@ -154,6 +205,14 @@ export function IssueComposer({ repositories }: IssueComposerProps) {
         </Button>
         <Button type="button" variant="outline" onClick={handleClear}>
           Limpar Conversa
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={!result || isCreating}
+          onClick={handleCreateIssue}
+        >
+          {isCreating ? "Criando issue..." : "Criar no GitHub"}
         </Button>
         <Button
           type="button"

@@ -12,21 +12,7 @@ import {
 import { IssueComposer } from "@/components/chat/issue-composer";
 import { handleLogout } from "@/server-actions/logout";
 import { fetchUserRepos } from "@/server-actions/repos";
-
-const sampleMessages = [
-  {
-    role: "Sistema",
-    content:
-      "Explique o problema, o resultado esperado e o impacto. Posso sugerir critérios de aceite.",
-    time: "Agora",
-  },
-  {
-    role: "Você",
-    content:
-      "Precisamos gerar issues a partir de linguagem natural para o repo X, com validação por schema.",
-    time: "Agora",
-  },
-];
+import { fetchUserProjects } from "@/server-actions/projects";
 
 export default async function ChatPage() {
   const session = await auth();
@@ -36,6 +22,7 @@ export default async function ChatPage() {
   }
 
   const repositories = await fetchUserRepos(session.accessToken);
+  const projects = await fetchUserProjects();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -73,30 +60,7 @@ export default async function ChatPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
-                {sampleMessages.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-foreground/20 p-4 text-sm text-foreground/60">
-                    Nenhuma conversa iniciada ainda.
-                  </div>
-                ) : (
-                  <div className="space-y-4 rounded-lg border border-foreground/10 bg-foreground/5 p-4">
-                    {sampleMessages.map((message) => (
-                      <div key={`${message.role}-${message.content}`}>
-                        <div className="flex items-center justify-between text-xs text-foreground/60">
-                          <span className="font-medium text-foreground/80">
-                            {message.role}
-                          </span>
-                          <span>{message.time}</span>
-                        </div>
-                        <p className="mt-2 break-words text-sm text-foreground/80">
-                          {message.content}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <IssueComposer repositories={repositories} />
+              <IssueComposer repositories={repositories} projects={projects} />
             </CardContent>
           </Card>
         </main>
