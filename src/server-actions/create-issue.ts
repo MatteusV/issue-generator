@@ -7,6 +7,7 @@ type CreateIssueInput = {
   repoFullName: string;
   issue: IssueDraft;
   projectId?: string | null;
+  assignees?: string[];
 };
 
 type CreateIssueResult =
@@ -60,6 +61,7 @@ export async function createIssueOnGithub(
           title: input.issue.title,
           body: buildIssueBody(input.issue),
           labels: input.issue.labels,
+          assignees: input.assignees,
         }),
       },
     );

@@ -16,6 +16,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { chatIssue } from "@/server-actions/ai/chat-issue";
 import { createIssueOnGithub } from "@/server-actions/create-issue";
 import type { ChatMessage } from "@/types/chat";
+import { fetchRepoAssignees, type AssigneeOption } from "@/server-actions/assignees";
+import { AssigneeSelector } from "@/components/assignee-selector";
 
 type IssueComposerProps = {
   repositories: RepoOption[];
@@ -39,6 +41,8 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
   const [isCreating, startCreate] = React.useTransition();
   const { toast } = useToast();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
+  const [assignees, setAssignees] = React.useState<string[]>([]);
+  const [assigneeOptions, setAssigneeOptions] = React.useState<AssigneeOption[]>([]);
 
   const canSubmit = repo.length > 0 && description.trim().length > 0;
 
@@ -89,6 +93,8 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
     setResult(null);
     setError(null);
     setMessages([]);
+    setAssignees([]);
+    setAssigneeOptions([]);
   }, []);
 
   const handleCreateIssue = React.useCallback(() => {
@@ -105,6 +111,7 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
         repoFullName: repo,
         issue: result,
         projectId,
+        assignees,
       });
 
       if (!response.ok) {
@@ -121,7 +128,19 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
         description: response.url,
       });
     });
-  }, [repo, result, projectId, toast]);
+  }, [repo, result, projectId, assignees, toast]);
+
+  React.useEffect(() => {
+    if (!repo) {
+      setAssignees([]);
+      setAssigneeOptions([]);
+      return;
+    }
+    fetchRepoAssignees(repo).then((list) => {
+      setAssigneeOptions(list);
+      setAssignees((prev) => prev.filter((login) => list.some((u) => u.login === login)));
+    });
+  }, [repo]);
 
   const handleReindex = React.useCallback(() => {
     if (!repo) return;
@@ -174,6 +193,15 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
           </p>
         </div>
       </div>
+      {assigneeOptions.length > 0 ? (
+        <div className="space-y-2">
+          <Label>Responsáveis</Label>
+          <AssigneeSelector assignees={assigneeOptions} value={assignees} onChange={setAssignees} />
+          <p className="text-xs text-foreground/60">
+            Selecione uma ou mais pessoas para atribuir a issue.
+          </p>
+        </div>
+      ) : null}
       <div className="space-y-2">
         <Label htmlFor="project">Projeto do GitHub</Label>
         <ProjectSelect
