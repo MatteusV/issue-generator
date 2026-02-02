@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { Checkbox } from "@/components/ui/checkbox";
 import type { AssigneeOption } from "@/server-actions/assignees";
 
 type AssigneeSelectorProps = {
@@ -31,11 +32,10 @@ export function AssigneeSelector({ assignees, value, onChange }: AssigneeSelecto
     <div className="flex flex-col gap-2 max-h-40 overflow-auto rounded-md border border-foreground/10 p-2">
       {assignees.map((user) => (
         <label key={user.id} className="flex items-center gap-2 text-sm text-foreground/80">
-          <input
-            type="checkbox"
-            className="h-4 w-4"
+          <Checkbox
             checked={value.includes(user.login)}
-            onChange={() => handleToggle(user.login)}
+            onCheckedChange={() => handleToggle(user.login)}
+            className="h-4 w-4"
           />
           <span className="truncate">
             {user.login}
