@@ -24,3 +24,11 @@ export function parseIssueDraft(text: string): IssueDraft {
     return normalizeIssueDraft({});
   }
 }
+
+// Helpful when we want to surface the original response even if JSON parsing fails.
+export function fallbackIssueDraft(text: string): IssueDraft {
+  return normalizeIssueDraft({
+    title: "",
+    body: text.trim(),
+  });
+}

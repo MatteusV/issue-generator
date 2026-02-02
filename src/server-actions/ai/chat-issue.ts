@@ -4,7 +4,7 @@ import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages
 import { ChatOpenAI } from "@langchain/openai";
 
 import { auth } from "@/auth";
-import { parseIssueDraft } from "@/lib/ai/parse";
+import { fallbackIssueDraft, parseIssueDraft } from "@/lib/ai/parse";
 import { buildIssuePrompt } from "@/lib/ai/prompt";
 import { retrieveContext } from "@/lib/ai/retriever";
 import { fetchRepoContext } from "@/server-actions/ai/fetch-repo-context";
@@ -17,7 +17,7 @@ type ChatIssueInput = {
 };
 
 type ChatIssueResult =
-  | { ok: true; data: ReturnType<typeof parseIssueDraft> }
+  | { ok: true; data: ReturnType<typeof parseIssueDraft>; raw: string }
   | { ok: false; error: string };
 
 export async function chatIssue(
@@ -77,6 +77,7 @@ export async function chatIssue(
   const content =
     typeof response.content === "string" ? response.content : "";
   const issue = parseIssueDraft(content);
+  const filled = issue.title || issue.body ? issue : fallbackIssueDraft(content);
 
-  return { ok: true, data: issue };
+  return { ok: true, data: filled, raw: content };
 }

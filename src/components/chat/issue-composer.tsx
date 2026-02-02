@@ -34,6 +34,7 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
     acceptanceCriteria: string[];
     labels: string[];
     steps: string[];
+    raw?: string;
   } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
@@ -68,11 +69,11 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
         return;
       }
 
-      setResult(response.data);
+      setResult({ ...response.data, raw: response.raw });
       const assistantContent = [
         `**${response.data.title}**`,
         "",
-        response.data.body,
+        response.data.body || response.raw,
         "",
         response.data.steps?.length ? `Steps:\n${response.data.steps.map((s) => `- ${s}`).join("\n")}` : "",
       ]
