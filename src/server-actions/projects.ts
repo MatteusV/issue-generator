@@ -36,7 +36,7 @@ const PROJECTS_QUERY = /* GraphQL */ `
 
 export async function fetchUserProjects(): Promise<ProjectOption[]> {
   const session = await auth();
-  const accessToken = session?.accessToken;
+  const accessToken = session?.accessToken ?? process.env.GITHUB_TOKEN;
 
   if (!accessToken) return [];
 

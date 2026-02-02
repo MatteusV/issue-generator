@@ -71,10 +71,11 @@ export async function fetchRepoContext(
   accessToken: string,
   repoFullName: string,
 ): Promise<RepoMetadata> {
+  const token = accessToken ?? process.env.GITHUB_TOKEN ?? "";
   const [details, languages, readmeExcerpt] = await Promise.all([
-    fetchRepoDetails(accessToken, repoFullName),
-    fetchRepoLanguages(accessToken, repoFullName),
-    fetchReadmeExcerpt(accessToken, repoFullName),
+    fetchRepoDetails(token, repoFullName),
+    fetchRepoLanguages(token, repoFullName),
+    fetchReadmeExcerpt(token, repoFullName),
   ]);
 
   return {

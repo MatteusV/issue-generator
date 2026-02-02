@@ -17,7 +17,7 @@ export async function createIssueOnGithub(
   input: CreateIssueInput,
 ): Promise<CreateIssueResult> {
   const session = await auth();
-  const accessToken = session?.accessToken;
+  const accessToken = session?.accessToken ?? process.env.GITHUB_TOKEN;
 
   if (!accessToken) {
     return { ok: false, error: "Sessão expirada. Faça login novamente." };

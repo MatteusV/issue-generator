@@ -38,8 +38,8 @@ export async function generateIssue(
   }
 
   const repoContext =
-    session.accessToken && repoFullName
-      ? await fetchRepoContext(session.accessToken, repoFullName)
+    (session.accessToken ?? process.env.GITHUB_TOKEN) && repoFullName
+      ? await fetchRepoContext(session.accessToken ?? process.env.GITHUB_TOKEN ?? "", repoFullName)
       : undefined;
 
   const retrievedChunks =
@@ -56,7 +56,7 @@ export async function generateIssue(
 
   const model = new ChatOpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-3.5-turbo",
+    model: "gpt-4o-mini",
     temperature: 0.2,
   });
 

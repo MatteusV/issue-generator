@@ -9,7 +9,9 @@ export type RepoOption = {
 export async function fetchUserRepos(
   accessToken?: string,
 ): Promise<RepoOption[]> {
-  if (!accessToken) {
+  const token = accessToken ?? process.env.GITHUB_TOKEN;
+
+  if (!token) {
     return [];
   }
 
@@ -17,7 +19,7 @@ export async function fetchUserRepos(
     "https://api.github.com/user/repos?per_page=100&sort=updated",
     {
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
       },

@@ -3,18 +3,17 @@
 import { auth } from "@/auth";
 import { chunkText } from "@/lib/indexer/chunker";
 import { fetchFileContent, listRepoFiles } from "@/lib/indexer/files";
-import { addDocuments, resetVectorStore } from "@/lib/vector-store";
 import {
   clearReindexProgress,
   setReindexProgress,
 } from "@/lib/reindex-progress";
+import { addDocuments, resetVectorStore } from "@/lib/vector-store";
 
 type ReindexResult =
   | { ok: true; indexed: number }
   | { ok: false; error: string };
 
 const CONCURRENCY = 3;
-const BATCH_LOG_STEP = 10;
 
 export async function reindexRepo(
   repoFullName: string,
@@ -23,7 +22,8 @@ export async function reindexRepo(
   console.log(`[reindex] start repo=${repoFullName}`);
 
   const session = await auth();
-  if (!session?.accessToken) {
+  const accessToken = session?.accessToken ?? process.env.GITHUB_TOKEN;
+  if (!accessToken) {
     return { ok: false, error: "Sessão expirada. Faça login novamente." };
   }
 
@@ -31,7 +31,7 @@ export async function reindexRepo(
     return { ok: false, error: "OPENAI_API_KEY não configurada." };
   }
 
-  const files = await listRepoFiles(session.accessToken, repoFullName);
+  const files = await listRepoFiles(accessToken, repoFullName);
   console.log(
     `[reindex] repo=${repoFullName} filesFiltered=${files.length} elapsedMs=${
       Date.now() - startedAt
@@ -64,7 +64,7 @@ export async function reindexRepo(
     );
     let content = "";
     try {
-      content = await fetchFileContent(session.accessToken, file.url);
+      content = await fetchFileContent(accessToken, file.url);
     } catch (error) {
       console.error(
         `[reindex] repo=${repoFullName} fetch error path=${file.path} ${String(error)}`,
@@ -128,7 +128,6 @@ export async function reindexRepo(
     while (cursor < files.length) {
       const index = cursor;
       cursor += 1;
-      // biome-ignore lint/style/noUnusedPromise: running concurrent workers
       await processFile(index);
     }
   }
