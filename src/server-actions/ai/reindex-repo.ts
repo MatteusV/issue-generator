@@ -22,7 +22,7 @@ export async function reindexRepo(
   console.log(`[reindex] start repo=${repoFullName}`);
 
   const session = await auth();
-  const accessToken = session?.accessToken ?? process.env.GITHUB_TOKEN;
+  const accessToken = session?.accessToken;
   if (!accessToken) {
     return { ok: false, error: "Sessão expirada. Faça login novamente." };
   }

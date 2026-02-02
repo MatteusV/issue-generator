@@ -38,8 +38,8 @@ export async function generateIssue(
   }
 
   const repoContext =
-    (session.accessToken ?? process.env.GITHUB_TOKEN) && repoFullName
-      ? await fetchRepoContext(session.accessToken ?? process.env.GITHUB_TOKEN ?? "", repoFullName)
+    session.accessToken && repoFullName
+      ? await fetchRepoContext(session.accessToken, repoFullName)
       : undefined;
 
   const retrievedChunks =
