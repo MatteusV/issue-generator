@@ -1,8 +1,7 @@
-import { Pool } from "pg";
-
 import { PGVectorStore } from "@langchain/community/vectorstores/pgvector";
 import type { Document } from "@langchain/core/documents";
 import { OpenAIEmbeddings } from "@langchain/openai";
+import { Pool } from "pg";
 
 const DEFAULT_URL = "postgres://postgres:postgres@localhost:5434/vector";
 const DEFAULT_SCHEMA = "public";
@@ -42,7 +41,7 @@ async function getStore(repoFullName: string) {
   return PGVectorStore.initialize(getEmbeddings(), {
     pool: getPool(),
     tableName,
-    schema: process.env.VECTOR_DB_SCHEMA ?? DEFAULT_SCHEMA,
+    schemaName: process.env.VECTOR_DB_SCHEMA ?? DEFAULT_SCHEMA,
   });
 }
 

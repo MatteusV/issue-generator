@@ -1,22 +1,24 @@
 "use client";
 
 import * as React from "react";
-
+import { AssigneeSelector } from "@/components/assignee-selector";
+import { MarkdownPreview } from "@/components/markdown-preview";
+import { ProjectSelect } from "@/components/project-select";
 import { RepoSelect } from "@/components/repo-select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { MarkdownPreview } from "@/components/markdown-preview";
 import { Textarea } from "@/components/ui/textarea";
-import type { RepoOption } from "@/server-actions/repos";
-import { ProjectSelect } from "@/components/project-select";
-import type { ProjectOption } from "@/server-actions/projects";
-import { reindexRepo } from "@/server-actions/ai/reindex-repo";
 import { useToast } from "@/components/ui/use-toast";
 import { chatIssue } from "@/server-actions/ai/chat-issue";
+import { reindexRepo } from "@/server-actions/ai/reindex-repo";
+import {
+  type AssigneeOption,
+  fetchRepoAssignees,
+} from "@/server-actions/assignees";
 import { createIssueOnGithub } from "@/server-actions/create-issue";
+import type { ProjectOption } from "@/server-actions/projects";
+import type { RepoOption } from "@/server-actions/repos";
 import type { ChatMessage } from "@/types/chat";
-import { fetchRepoAssignees, type AssigneeOption } from "@/server-actions/assignees";
-import { AssigneeSelector } from "@/components/assignee-selector";
 
 type IssueComposerProps = {
   repositories: RepoOption[];
@@ -42,7 +44,9 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
   const { toast } = useToast();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [assignees, setAssignees] = React.useState<string[]>([]);
-  const [assigneeOptions, setAssigneeOptions] = React.useState<AssigneeOption[]>([]);
+  const [assigneeOptions, setAssigneeOptions] = React.useState<
+    AssigneeOption[]
+  >([]);
 
   const canSubmit = repo.length > 0 && description.trim().length > 0;
 
@@ -74,7 +78,9 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
         "",
         response.data.body || response.raw,
         "",
-        response.data.steps?.length ? `Steps:\n${response.data.steps.map((s) => `- ${s}`).join("\n")}` : "",
+        response.data.steps?.length
+          ? `Steps:\n${response.data.steps.map((s) => `- ${s}`).join("\n")}`
+          : "",
       ]
         .filter(Boolean)
         .join("\n");
@@ -141,7 +147,9 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
     fetchRepoAssignees(repo).then((list) => {
       if (cancelled) return;
       setAssigneeOptions(list);
-      setAssignees((prev) => prev.filter((login) => list.some((u) => u.login === login)));
+      setAssignees((prev) =>
+        prev.filter((login) => list.some((u) => u.login === login)),
+      );
       setIsLoadingAssignees(false);
     });
     return () => {
@@ -171,21 +179,21 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
   }, [repo, toast]);
 
   return (
-      <div className="space-y-4">
-        {messages.length > 0 ? (
-          <div className="space-y-3 rounded-md border border-foreground/10 bg-foreground/5 p-3">
-            {messages.map((msg, idx) => (
-              <div key={`${msg.role}-${idx}`} className="space-y-1">
-                <div className="text-xs font-semibold text-foreground/60">
-                  {msg.role === "user" ? "Você" : "Assistente"}
-                </div>
-                <div className="prose prose-sm prose-invert text-foreground/80">
-                  <MarkdownPreview>{msg.content}</MarkdownPreview>
-                </div>
+    <div className="space-y-4">
+      {messages.length > 0 ? (
+        <div className="space-y-3 rounded-md border border-foreground/10 bg-foreground/5 p-3">
+          {messages.map((msg, idx) => (
+            <div key={`${msg.role}-${idx}`} className="space-y-1">
+              <div className="text-xs font-semibold text-foreground/60">
+                {msg.role === "user" ? "Você" : "Assistente"}
               </div>
-            ))}
-          </div>
-        ) : null}
+              <div className="prose prose-sm prose-invert text-foreground/80">
+                <MarkdownPreview>{msg.content}</MarkdownPreview>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
       <div className="space-y-2">
         <Label htmlFor="repo">Repositório</Label>
         <div className="grid gap-2">
@@ -203,7 +211,11 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
       {assigneeOptions.length > 0 ? (
         <div className="space-y-2">
           <Label>Responsáveis</Label>
-          <AssigneeSelector assignees={assigneeOptions} value={assignees} onChange={setAssignees} />
+          <AssigneeSelector
+            assignees={assigneeOptions}
+            value={assignees}
+            onChange={setAssignees}
+          />
           <p className="text-xs text-foreground/60">
             Selecione uma ou mais pessoas para atribuir a issue.
           </p>
@@ -235,7 +247,11 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
         />
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" disabled={!canSubmit || isPending} onClick={handleSubmit}>
+        <Button
+          type="button"
+          disabled={!canSubmit || isPending}
+          onClick={handleSubmit}
+        >
           {isPending ? "Gerando..." : "Gerar Issue"}
         </Button>
         <Button type="button" variant="outline" onClick={handleClear}>
@@ -274,7 +290,9 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
             <p className="text-xs uppercase tracking-[0.2em] text-foreground/50">
               Título sugerido
             </p>
-            <p className="text-sm font-medium text-foreground">{result.title}</p>
+            <p className="text-sm font-medium text-foreground">
+              {result.title}
+            </p>
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-foreground/50">
