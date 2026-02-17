@@ -18,6 +18,11 @@ import {
   PromptInputFooter,
   PromptInputHeader,
   type PromptInputMessage,
+  PromptInputSelect,
+  PromptInputSelectContent,
+  PromptInputSelectItem,
+  PromptInputSelectTrigger,
+  PromptInputSelectValue,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
@@ -25,7 +30,9 @@ import {
 import { AssigneeSelector } from "@/components/assignee-selector";
 import { ProjectSelect } from "@/components/project-select";
 import { RepoSelect } from "@/components/repo-select";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { useModelContext } from "@/contexts/model-context";
 import { chatIssue } from "@/server-actions/ai/chat-issue";
 import { reindexRepo } from "@/server-actions/ai/reindex-repo";
 import {
@@ -47,6 +54,8 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
   const [repo, setRepo] = useState("");
   const [projectId, setProjectId] = useState<string | undefined>();
   const [description, setDescription] = useState("");
+  const { models, modelId, setModelId, isLoading: isLoadingModels } =
+    useModelContext();
   const [result, setResult] = useState<{
     title: string;
     body: string;
@@ -60,12 +69,22 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
   const [isReindexing, startReindex] = useTransition();
   const [isCreating, startCreate] = useTransition();
   const [isLoadingAssignees, setIsLoadingAssignees] = useState(false);
+  const [modelQuery, setModelQuery] = useState("");
   const { toast } = useToast();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [assignees, setAssignees] = useState<string[]>([]);
   const [assigneeOptions, setAssigneeOptions] = useState<AssigneeOption[]>([]);
 
   const canSubmit = repo.length > 0 && description.trim().length > 0;
+
+  const normalizedModelQuery = modelQuery.trim().toLowerCase();
+  const filteredModels = normalizedModelQuery
+    ? models.filter((model) => {
+        const haystack = `${model.label} ${model.id} ${model.provider ?? ""}`
+          .toLowerCase();
+        return haystack.includes(normalizedModelQuery);
+      })
+    : models;
 
   const handleSubmit = useCallback(
     (text: string) => {
@@ -77,6 +96,7 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
           repoFullName: repo,
           message: text,
           history,
+          modelId,
         });
 
         if (!response.ok) {
@@ -117,8 +137,8 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
           { role: "assistant", content: assistantContent },
         ]);
       });
-    },
-    [repo, toast, messages],
+  },
+    [repo, toast, messages, modelId],
   );
 
   const handleClear = useCallback(() => {
@@ -291,6 +311,54 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
               />
               <p className="text-xs text-foreground/60">
                 Opcional: adiciona a issue criada ao projeto selecionado.
+              </p>
+            </div>
+            <div className="flex flex-1 flex-col gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/50">
+                Modelo de IA
+              </p>
+              <PromptInputSelect
+                value={modelId}
+                onValueChange={setModelId}
+                disabled={isLoadingModels}
+              >
+                <PromptInputSelectTrigger
+                  id="model"
+                  aria-label="Selecione um modelo"
+                >
+                  <PromptInputSelectValue
+                    placeholder={
+                      isLoadingModels
+                        ? "Carregando modelos..."
+                        : "Selecione um modelo"
+                    }
+                  />
+                </PromptInputSelectTrigger>
+                <PromptInputSelectContent position="popper" align="start" sideOffset={6}>
+                  <div className="border-b border-foreground/10 p-2">
+                    <Input
+                      autoFocus
+                      placeholder="Pesquisar modelo..."
+                      value={modelQuery}
+                      onChange={(event) => setModelQuery(event.target.value)}
+                      onKeyDown={(event) => event.stopPropagation()}
+                    />
+                  </div>
+                  {filteredModels.length === 0 ? (
+                    <PromptInputSelectItem value="empty" disabled>
+                      Nenhum modelo encontrado
+                    </PromptInputSelectItem>
+                  ) : (
+                    filteredModels.map((model) => (
+                      <PromptInputSelectItem key={model.id} value={model.id}>
+                        {model.label}
+                      </PromptInputSelectItem>
+                    ))
+                  )}
+                </PromptInputSelectContent>
+              </PromptInputSelect>
+              <p className="text-xs text-foreground/60">
+                Escolha o modelo que gera a issue.
               </p>
             </div>
           </div>

@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { fallbackIssueDraft, parseIssueDraft } from "@/lib/ai/parse";
 import { buildIssuePrompt } from "@/lib/ai/prompt";
 import { retrieveContext } from "@/lib/ai/retriever";
+import { DEFAULT_MODEL_ID } from "@/lib/ai/models";
 import { fetchRepoContext } from "@/server-actions/ai/fetch-repo-context";
 import type { ChatMessage } from "@/types/chat";
 
@@ -14,6 +15,7 @@ type ChatIssueInput = {
   repoFullName: string;
   message: string;
   history: ChatMessage[];
+  modelId?: string;
 };
 
 type ChatIssueResult =
@@ -56,9 +58,11 @@ export async function chatIssue(
     retrievedChunks,
   );
 
+  const modelId = input.modelId?.trim() || DEFAULT_MODEL_ID;
+
   const model = new ChatOpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    model: "gpt-3.5-turbo",
+    model: modelId,
     temperature: 0.2,
   });
 

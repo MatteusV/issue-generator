@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ModelProvider } from "@/contexts/model-context";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { ToastProvider } from "@/components/ui/use-toast";
@@ -33,14 +34,16 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <ToastProvider>
-            <a
-              href="#main-content"
-              className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-6 focus-visible:top-6 focus-visible:z-50 focus-visible:rounded-full focus-visible:bg-foreground focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-background"
-            >
-              Pular para o conteúdo principal
-            </a>
-            {children}
-            <Toaster />
+            <ModelProvider>
+              <a
+                href="#main-content"
+                className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-6 focus-visible:top-6 focus-visible:z-50 focus-visible:rounded-full focus-visible:bg-foreground focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-background"
+              >
+                Pular para o conteúdo principal
+              </a>
+              {children}
+              <Toaster />
+            </ModelProvider>
           </ToastProvider>
         </ThemeProvider>
       </body>

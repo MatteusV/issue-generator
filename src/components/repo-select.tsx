@@ -1,8 +1,6 @@
 "use client";
 
-import { SelectViewport } from "@radix-ui/react-select";
 import * as React from "react";
-import { Input } from "@/components/ui/input";
 import {
   PromptInputSelect as Select,
   PromptInputSelectContent as SelectContent,
@@ -10,6 +8,7 @@ import {
   PromptInputSelectTrigger as SelectTrigger,
   PromptInputSelectValue as SelectValue,
 } from "@/components/ai-elements/prompt-input";
+import { Input } from "@/components/ui/input";
 import type { RepoOption } from "@/server-actions/repos";
 
 const PAGE_SIZE = 10;
@@ -97,7 +96,12 @@ export function RepoSelect({
       <SelectTrigger id={id} aria-label={placeholder}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent className="p-0">
+      <SelectContent
+        className="p-0"
+        position="popper"
+        align="start"
+        sideOffset={6}
+      >
         <div className="border-b border-foreground/10 p-2">
           <Input
             autoFocus
@@ -107,7 +111,7 @@ export function RepoSelect({
             onKeyDown={(event) => event.stopPropagation()}
           />
         </div>
-        <SelectViewport className="max-h-64" onScroll={handleScroll}>
+        <div className="max-h-64 overflow-auto" onScroll={handleScroll}>
           {filteredRepositories.length === 0 ? (
             <SelectItem value="empty" disabled>
               Nenhum repositório encontrado
@@ -120,7 +124,7 @@ export function RepoSelect({
               </SelectItem>
             ))
           )}
-        </SelectViewport>
+        </div>
       </SelectContent>
     </Select>
   );
