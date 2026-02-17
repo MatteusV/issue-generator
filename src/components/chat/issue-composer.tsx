@@ -1,13 +1,30 @@
 "use client";
 
-import * as React from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "@/components/ai-elements/message";
+import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputHeader,
+  type PromptInputMessage,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputTools,
+} from "@/components/ai-elements/prompt-input";
 import { AssigneeSelector } from "@/components/assignee-selector";
-import { MarkdownPreview } from "@/components/markdown-preview";
 import { ProjectSelect } from "@/components/project-select";
 import { RepoSelect } from "@/components/repo-select";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { chatIssue } from "@/server-actions/ai/chat-issue";
 import { reindexRepo } from "@/server-actions/ai/reindex-repo";
@@ -19,6 +36,7 @@ import { createIssueOnGithub } from "@/server-actions/create-issue";
 import type { ProjectOption } from "@/server-actions/projects";
 import type { RepoOption } from "@/server-actions/repos";
 import type { ChatMessage } from "@/types/chat";
+import { InputPrompt } from "../input-prompt";
 
 type IssueComposerProps = {
   repositories: RepoOption[];
@@ -26,10 +44,10 @@ type IssueComposerProps = {
 };
 
 export function IssueComposer({ repositories, projects }: IssueComposerProps) {
-  const [repo, setRepo] = React.useState("");
-  const [projectId, setProjectId] = React.useState<string | undefined>();
-  const [description, setDescription] = React.useState("");
-  const [result, setResult] = React.useState<{
+  const [repo, setRepo] = useState("");
+  const [projectId, setProjectId] = useState<string | undefined>();
+  const [description, setDescription] = useState("");
+  const [result, setResult] = useState<{
     title: string;
     body: string;
     acceptanceCriteria: string[];
@@ -37,63 +55,73 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
     steps: string[];
     raw?: string;
   } | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-  const [isPending, startTransition] = React.useTransition();
-  const [isReindexing, startReindex] = React.useTransition();
-  const [isCreating, startCreate] = React.useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const [isReindexing, startReindex] = useTransition();
+  const [isCreating, startCreate] = useTransition();
+  const [isLoadingAssignees, setIsLoadingAssignees] = useState(false);
   const { toast } = useToast();
-  const [messages, setMessages] = React.useState<ChatMessage[]>([]);
-  const [assignees, setAssignees] = React.useState<string[]>([]);
-  const [assigneeOptions, setAssigneeOptions] = React.useState<
-    AssigneeOption[]
-  >([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [assignees, setAssignees] = useState<string[]>([]);
+  const [assigneeOptions, setAssigneeOptions] = useState<AssigneeOption[]>([]);
 
   const canSubmit = repo.length > 0 && description.trim().length > 0;
 
-  const handleSubmit = React.useCallback(() => {
-    setError(null);
-    startTransition(async () => {
-      setResult(null);
-      const history = messages;
-      const response = await chatIssue({
-        repoFullName: repo,
-        message: description,
-        history,
-      });
-
-      if (!response.ok) {
-        setError(response.error);
-        toast({
-          variant: "destructive",
-          title: "Erro ao gerar issue",
-          description: response.error,
-        });
+  const handleSubmit = useCallback(
+    (text: string) => {
+      setError(null);
+      startTransition(async () => {
         setResult(null);
-        return;
-      }
+        const history = messages;
+        const response = await chatIssue({
+          repoFullName: repo,
+          message: text,
+          history,
+        });
 
-      setResult({ ...response.data, raw: response.raw });
-      const assistantContent = [
-        `**${response.data.title}**`,
-        "",
-        response.data.body || response.raw,
-        "",
-        response.data.steps?.length
-          ? `Steps:\n${response.data.steps.map((s) => `- ${s}`).join("\n")}`
-          : "",
-      ]
-        .filter(Boolean)
-        .join("\n");
+        if (!response.ok) {
+          setError(response.error);
+          toast({
+            variant: "destructive",
+            title: "Erro ao gerar issue",
+            description: response.error,
+          });
+          setResult(null);
+          return;
+        }
 
-      setMessages((prev) => [
-        ...prev,
-        { role: "user", content: description },
-        { role: "assistant", content: assistantContent },
-      ]);
-    });
-  }, [repo, description, toast, messages]);
+        setResult({ ...response.data, raw: response.raw });
+        const acceptanceCriteria = response.data.acceptanceCriteria?.length
+          ? `## Critérios de aceite\n${response.data.acceptanceCriteria.map((item) => `- ${item}`).join("\n")}`
+          : "";
+        const labels = response.data.labels?.length
+          ? `## Labels\n${response.data.labels.map((item) => `- ${item}`).join("\n")}`
+          : "";
+        const steps = response.data.steps?.length
+          ? `## Passos\n${response.data.steps.map((s) => `- ${s}`).join("\n")}`
+          : "";
 
-  const handleClear = React.useCallback(() => {
+        const assistantContent = [
+          `# ${response.data.title}`,
+          response.data.body || response.raw,
+          acceptanceCriteria,
+          labels,
+          steps,
+        ]
+          .filter(Boolean)
+          .join("\n\n");
+
+        setMessages((prev) => [
+          ...prev,
+          { role: "user", content: text },
+          { role: "assistant", content: assistantContent },
+        ]);
+      });
+    },
+    [repo, toast, messages],
+  );
+
+  const handleClear = useCallback(() => {
     setRepo("");
     setDescription("");
     setResult(null);
@@ -103,7 +131,7 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
     setAssigneeOptions([]);
   }, []);
 
-  const handleCreateIssue = React.useCallback(() => {
+  const handleCreateIssue = useCallback(() => {
     if (!repo || !result) {
       toast({
         variant: "destructive",
@@ -136,7 +164,7 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
     });
   }, [repo, result, projectId, assignees, toast]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!repo) {
       setAssignees([]);
       setAssigneeOptions([]);
@@ -157,7 +185,7 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
     };
   }, [repo]);
 
-  const handleReindex = React.useCallback(() => {
+  const handleReindex = useCallback(() => {
     if (!repo) return;
     setError(null);
     startReindex(async () => {
@@ -178,102 +206,133 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
     });
   }, [repo, toast]);
 
+  const handlePromptSubmit = useCallback(
+    async ({ text }: PromptInputMessage) => {
+      const trimmed = text.trim();
+      if (!trimmed || !repo) {
+        return;
+      }
+      handleSubmit(trimmed);
+      setDescription("");
+    },
+    [repo, handleSubmit],
+  );
+
   return (
     <div className="space-y-4">
-      {messages.length > 0 ? (
-        <div className="space-y-3 rounded-md border border-foreground/10 bg-foreground/5 p-3">
-          {messages.map((msg, idx) => (
-            <div key={`${msg.role}-${idx}`} className="space-y-1">
-              <div className="text-xs font-semibold text-foreground/60">
-                {msg.role === "user" ? "Você" : "Assistente"}
-              </div>
-              <div className="prose prose-sm prose-invert text-foreground/80">
-                <MarkdownPreview>{msg.content}</MarkdownPreview>
-              </div>
+      <Conversation className="rounded-md border border-foreground/10 bg-foreground/5">
+        <ConversationContent>
+          {messages.length === 0 ? (
+            <ConversationEmptyState
+              title="Sem mensagens ainda"
+              description="Selecione um repositório e descreva a demanda para gerar a issue."
+            />
+          ) : (
+            messages.map((msg, idx) => (
+              <Message
+                key={`${msg.role}-${idx}`}
+                from={msg.role === "user" ? "user" : "assistant"}
+              >
+                <MessageContent>
+                  <MessageResponse>{msg.content}</MessageResponse>
+                </MessageContent>
+              </Message>
+            ))
+          )}
+        </ConversationContent>
+        <ConversationScrollButton />
+      </Conversation>
+      <PromptInput onSubmit={handlePromptSubmit}>
+        <PromptInputHeader>
+          <div className="flex w-full flex-wrap items-center gap-3">
+            <div className="flex flex-1 flex-col gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/50">
+                Repositório
+              </p>
+              <RepoSelect
+                repositories={repositories}
+                value={repo}
+                onValueChange={setRepo}
+                id="repo"
+              />
+              <p className="text-xs text-foreground/60">
+                Apenas repositórios que você pode acessar aparecem aqui.
+              </p>
             </div>
-          ))}
-        </div>
-      ) : null}
-      <div className="space-y-2">
-        <Label htmlFor="repo">Repositório</Label>
-        <div className="grid gap-2">
-          <RepoSelect
-            repositories={repositories}
-            value={repo}
-            onValueChange={setRepo}
-            id="repo"
+            {isLoadingAssignees ? (
+              <div className="rounded-md border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs text-foreground/60">
+                Carregando responsáveis...
+              </div>
+            ) : assigneeOptions.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/50">
+                  Responsáveis
+                </p>
+                <AssigneeSelector
+                  assignees={assigneeOptions}
+                  value={assignees}
+                  onChange={setAssignees}
+                />
+                <p className="text-xs text-foreground/60">
+                  Selecione uma ou mais pessoas para atribuir a issue.
+                </p>
+              </div>
+            ) : null}
+            <div className="flex flex-1 flex-col gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/50">
+                Projeto do GitHub
+              </p>
+              <ProjectSelect
+                projects={projects}
+                value={projectId}
+                onValueChange={setProjectId}
+                id="project"
+                placeholder="Selecione um projeto (opcional)"
+              />
+              <p className="text-xs text-foreground/60">
+                Opcional: adiciona a issue criada ao projeto selecionado.
+              </p>
+            </div>
+          </div>
+        </PromptInputHeader>
+        <PromptInputBody>
+          <div className="p-4 w-full h-full">
+            <PromptInputTextarea
+              className="border rounded-2xl py-10 px-4"
+              placeholder="EX: Cria uma issue para desenvolver o crud de usuário e o sistema de autenticação"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </div>
+        </PromptInputBody>
+        <PromptInputFooter>
+          <PromptInputTools className="w-1/2 flex justify-between">
+            <InputPrompt label="Limpar" onClick={handleClear} />
+
+            <InputPrompt
+              type="button"
+              variant="secondary"
+              disabled={!result || isCreating}
+              onClick={handleCreateIssue}
+              label={isCreating ? "Criando issue..." : "Criar no Github"}
+            />
+
+            <InputPrompt
+              type="button"
+              variant="ghost"
+              disabled={!repo || isReindexing}
+              onClick={handleReindex}
+              label={
+                isReindexing ? "Atualizando contexto..." : "Atualizar contexto"
+              }
+            />
+          </PromptInputTools>
+          <PromptInputSubmit
+            disabled={!canSubmit || isPending}
+            status={isPending ? "submitted" : "ready"}
           />
-          <p className="text-xs text-foreground/60">
-            Apenas repositórios que você pode acessar aparecem aqui.
-          </p>
-        </div>
-      </div>
-      {assigneeOptions.length > 0 ? (
-        <div className="space-y-2">
-          <Label>Responsáveis</Label>
-          <AssigneeSelector
-            assignees={assigneeOptions}
-            value={assignees}
-            onChange={setAssignees}
-          />
-          <p className="text-xs text-foreground/60">
-            Selecione uma ou mais pessoas para atribuir a issue.
-          </p>
-        </div>
-      ) : null}
-      <div className="space-y-2">
-        <Label htmlFor="project">Projeto do GitHub</Label>
-        <ProjectSelect
-          projects={projects}
-          value={projectId}
-          onValueChange={setProjectId}
-          id="project"
-          placeholder="Selecione um projeto (opcional)"
-        />
-        <p className="text-xs text-foreground/60">
-          Opcional: adiciona a issue criada ao projeto selecionado.
-        </p>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="prompt">Descrição da Demanda</Label>
-        <Textarea
-          id="prompt"
-          name="prompt"
-          placeholder="Ex.: Validar assignees e listar apenas repositórios permitidos…"
-          autoComplete="off"
-          className="min-h-[200px]"
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-        />
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button
-          type="button"
-          disabled={!canSubmit || isPending}
-          onClick={handleSubmit}
-        >
-          {isPending ? "Gerando..." : "Gerar Issue"}
-        </Button>
-        <Button type="button" variant="outline" onClick={handleClear}>
-          Limpar Conversa
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={!result || isCreating}
-          onClick={handleCreateIssue}
-        >
-          {isCreating ? "Criando issue..." : "Criar no GitHub"}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={!repo || isReindexing}
-          onClick={handleReindex}
-        >
-          {isReindexing ? "Atualizando contexto..." : "Atualizar contexto"}
-        </Button>
-      </div>
+        </PromptInputFooter>
+      </PromptInput>
       {error ? (
         <div className="rounded-md border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm text-foreground/70">
           {error}
@@ -282,65 +341,6 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
       {isReindexing ? (
         <div className="rounded-md border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs text-foreground/60">
           Atualizando contexto…
-        </div>
-      ) : null}
-      {result ? (
-        <div className="space-y-3 rounded-md border border-foreground/10 bg-background p-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-foreground/50">
-              Título sugerido
-            </p>
-            <p className="text-sm font-medium text-foreground">
-              {result.title}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-foreground/50">
-              Descrição
-            </p>
-            <div className="prose prose-sm prose-invert text-foreground/80">
-              <MarkdownPreview>{result.body}</MarkdownPreview>
-            </div>
-          </div>
-          {result.acceptanceCriteria.length > 0 ? (
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-foreground/50">
-                Critérios de aceite
-              </p>
-              <ul className="list-disc space-y-1 pl-4 text-sm text-foreground/80">
-                {result.acceptanceCriteria.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          {result.labels.length > 0 ? (
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-foreground/50">
-                Labels sugeridas
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {result.labels.map((label) => (
-                  <span
-                    key={label}
-                    className="rounded-full border border-foreground/10 bg-foreground/5 px-2 py-1 text-xs text-foreground/70"
-                  >
-                    {label}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : null}
-          {result.steps.length > 0 ? (
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-foreground/50">
-                Passos sugeridos
-              </p>
-              <div className="prose prose-sm prose-invert text-foreground/80">
-                <MarkdownPreview>{result.steps.join("\n")}</MarkdownPreview>
-              </div>
-            </div>
-          ) : null}
         </div>
       ) : null}
       <div className="rounded-md border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs text-foreground/60">

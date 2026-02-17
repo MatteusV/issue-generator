@@ -1,6 +1,12 @@
 "use client";
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  PromptInputSelect as Select,
+  PromptInputSelectContent as SelectContent,
+  PromptInputSelectItem as SelectItem,
+  PromptInputSelectTrigger as SelectTrigger,
+  PromptInputSelectValue as SelectValue,
+} from "@/components/ai-elements/prompt-input";
 import type { ProjectOption } from "@/server-actions/projects";
 
 type ProjectSelectProps = {

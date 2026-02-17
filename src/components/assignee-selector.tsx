@@ -1,7 +1,5 @@
 "use client";
 
-import * as React from "react";
-
 import { Checkbox } from "@/components/ui/checkbox";
 import type { AssigneeOption } from "@/server-actions/assignees";
 
@@ -31,7 +29,7 @@ export function AssigneeSelector({ assignees, value, onChange }: AssigneeSelecto
   return (
     <div className="flex flex-col gap-2 max-h-40 overflow-auto rounded-md border border-foreground/10 p-2">
       {assignees.map((user) => (
-        <label key={user.id} className="flex items-center gap-2 text-sm text-foreground/80">
+        <div key={user.id} className="flex items-center gap-2 text-sm text-foreground/80">
           <Checkbox
             checked={value.includes(user.login)}
             onChange={() => handleToggle(user.login)}
@@ -41,7 +39,7 @@ export function AssigneeSelector({ assignees, value, onChange }: AssigneeSelecto
             {user.login}
             {user.name ? ` — ${user.name}` : ""}
           </span>
-        </label>
+        </div>
       ))}
     </div>
   );

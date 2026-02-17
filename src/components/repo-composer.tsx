@@ -1,8 +1,8 @@
 "use client";
 
+import { RepoSelect } from "@/components/repo-select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { RepoSelect } from "@/components/repo-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { RepoOption } from "@/server-actions/repos";
 

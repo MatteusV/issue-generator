@@ -1,16 +1,15 @@
 "use client";
 
+import { SelectViewport } from "@radix-ui/react-select";
 import * as React from "react";
-
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectViewport,
-} from "@/components/ui/select";
+  PromptInputSelect as Select,
+  PromptInputSelectContent as SelectContent,
+  PromptInputSelectItem as SelectItem,
+  PromptInputSelectTrigger as SelectTrigger,
+  PromptInputSelectValue as SelectValue,
+} from "@/components/ai-elements/prompt-input";
 import type { RepoOption } from "@/server-actions/repos";
 
 const PAGE_SIZE = 10;

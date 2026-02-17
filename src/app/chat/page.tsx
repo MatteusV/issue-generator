@@ -1,19 +1,12 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { IssueComposer } from "@/components/chat/issue-composer";
-import { handleLogout } from "@/server-actions/logout";
-import { fetchUserRepos } from "@/server-actions/repos";
-import { fetchUserProjects } from "@/server-actions/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { handleLogout } from "@/server-actions/logout";
+import { fetchUserProjects } from "@/server-actions/projects";
+import { fetchUserRepos } from "@/server-actions/repos";
 
 export default async function ChatPage() {
   const session = await auth();
@@ -44,7 +37,8 @@ export default async function ChatPage() {
               className="min-w-0 max-w-xs truncate rounded-full border border-foreground/10 bg-foreground/5 px-4 py-2 text-xs text-foreground/70"
               title={session.user.name ?? session.user.email ?? "Usuário"}
             >
-              Conectado como {session.user.name ?? session.user.email ?? "Usuário"}
+              Conectado como{" "}
+              {session.user.name ?? session.user.email ?? "Usuário"}
             </div>
             <form action={handleLogout}>
               <Button type="submit" variant="outline" size="sm">
@@ -56,17 +50,7 @@ export default async function ChatPage() {
         </header>
 
         <main id="main-content" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Conversa</CardTitle>
-              <CardDescription>
-                Responda ao assistente para gerar uma issue alinhada com o time.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <IssueComposer repositories={repositories} projects={projects} />
-            </CardContent>
-          </Card>
+          <IssueComposer repositories={repositories} projects={projects} />
         </main>
       </div>
     </div>
