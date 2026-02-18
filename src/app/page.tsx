@@ -1,3 +1,5 @@
+import { signIn } from "@/auth";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,8 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { signIn } from "@/auth";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { redirectIfAuthenticated } from "@/lib/auth-redirects";
 
 async function handleLoginWithGithub() {
   "use server";
@@ -24,7 +25,8 @@ const features = [
   "Geração de issues com validação por schema",
 ];
 
-export default function Home() {
+export default async function Home() {
+  await redirectIfAuthenticated();
   return (
     <div className="min-h-screen bg-background text-foreground">
       <main

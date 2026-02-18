@@ -1,24 +1,22 @@
-import { redirect } from "next/navigation";
-
-import { auth } from "@/auth";
 import { IssueComposer } from "@/components/chat/issue-composer";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { requireAuth } from "@/lib/auth-redirects";
 import { handleLogout } from "@/server-actions/logout";
 import { fetchUserProjects } from "@/server-actions/projects";
 import { fetchUserRepos } from "@/server-actions/repos";
 
 export default async function ChatPage() {
-  const session = await auth();
-
-  if (!session?.user) {
-    redirect("/");
-  }
+  const session = await requireAuth();
 
   const [repositories, projects] = await Promise.all([
     fetchUserRepos(session.accessToken),
     fetchUserProjects(),
   ]);
+
+  if (!session.user?.name && !session.user?.email) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
