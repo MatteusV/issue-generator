@@ -1,216 +1,88 @@
-# Análise de Requisitos — AI GitHub Issue Creator
+# Generate Issues
 
-Documento de análise funcional e não funcional do sistema de criação automática de GitHub Issues com IA, voltado para uso organizacional no GitHub.com.
-
----
-
-## 1. Visão Geral
-
-O sistema tem como objetivo auxiliar líderes técnicos (CTO, Tech Leads) na criação de GitHub Issues claras, técnicas e acionáveis, a partir de linguagem natural, utilizando IA com **contexto real do código-fonte**.
-
-O GitHub é a **única fonte da verdade** do código.  
-O sistema **não clona repositórios**, mas consome o conteúdo via GitHub API para gerar entendimento semântico temporário (embeddings).
-
-O CTO poderá **escolher, no momento do uso**, qual provedor e modelo de IA utilizar. Para viabilizar essa flexibilidade desde o início, a integração de LLM será construída com **LangChain**.
+Aplicação Next.js para criar GitHub Issues a partir de linguagem natural, com contexto do repositório via GitHub API e embeddings em Postgres (pgvector).  
+O chat usa o **AI Gateway** da Vercel para gerar a issue; os **embeddings** usam OpenAI direto.
 
 ---
 
-## 2. Atores do Sistema
+## Como funciona
 
-### 2.1 Usuário Principal
-- CTO
-- Tech Lead
-- Engineering Manager
-
-### 2.2 Sistemas Externos
-- GitHub.com (organização)
-- LLM Provider
-- Banco de dados (vetores + metadata)
+1. **OAuth GitHub**: o usuário faz login e o app lista apenas os repositórios permitidos.
+2. **Indexação**: ao indexar um repositório, o app lê arquivos via GitHub API, gera embeddings e salva no Postgres (pgvector).
+3. **RAG**: ao gerar uma issue, o app busca trechos relevantes do repositório e monta o prompt.
+4. **IA**: a geração da issue é feita via **AI Gateway** (`https://ai-gateway.vercel.sh/v1`).
+5. **Revisão**: o usuário revisa e, se desejar, cria a issue no GitHub.
 
 ---
 
-## 3. Requisitos Funcionais (RF)
+## Requisitos
 
-### RF-01 — Autenticação via GitHub
-O sistema deve permitir autenticação exclusivamente via GitHub OAuth (GitHub.com).
-
----
-
-### RF-02 — Listagem de Repositórios
-O sistema deve listar apenas os repositórios aos quais o usuário autenticado tem acesso.
-
----
-
-### RF-03 — Seleção de Repositório
-O usuário deve poder selecionar um repositório específico para contextualizar a demanda.
+- Node.js 18+
+- pnpm
+- Docker (para o Postgres com pgvector)
+- Conta GitHub (OAuth App)
+- Chave AI Gateway (Vercel)
+- Chave OpenAI (embeddings)
 
 ---
 
-### RF-04 — Indexação via GitHub API
-O sistema deve:
-- Ler arquivos do repositório via GitHub API
-- Filtrar extensões relevantes
-- Ignorar diretórios irrelevantes
-- Gerar embeddings a partir do conteúdo
+## Como rodar
 
-Não deve realizar `git clone`.
+### 1) Instalar deps
+```bash
+pnpm install
+```
 
----
+### 2) Subir o Postgres com pgvector
+```bash
+docker compose up -d
+```
 
-### RF-05 — Versionamento por Commit
-O sistema deve associar embeddings ao commit SHA utilizado na indexação.
+### 3) Configurar variáveis de ambiente
+Copie o `.env.example` para `.env` e preencha:
+```bash
+cp .env.example .env
+```
 
----
+### 4) Rodar o app
+```bash
+pnpm dev
+```
 
-### RF-06 — Chat Guiado de Demanda
-O sistema deve fornecer uma interface de chat estruturado, com campos mínimos:
-- Problema
-- Resultado esperado
-- Impacto
-- Prazo (opcional)
-
----
-
-### RF-07 — Recuperação Semântica
-O sistema deve recuperar apenas os trechos de código semanticamente relevantes à demanda informada.
+Acesse: `http://localhost:3000`
 
 ---
 
-### RF-08 — Geração Estruturada de Issue
-O sistema deve gerar uma Issue com os seguintes campos obrigatórios:
-- Título
-- Descrição
-- Critérios de aceite
-- Notas técnicas
-- Riscos
+## Variáveis de ambiente
+
+Veja o arquivo `.env.example` para a lista completa.
+
+Principais:
+
+- `AI_GATEWAY_API_KEY` — usado para gerar issues via AI Gateway
+- `OPENAI_API_KEY` — usado apenas para embeddings
+- `AUTH_GITHUB_ID` e `AUTH_GITHUB_SECRET` — OAuth GitHub
+- `AUTH_SECRET` e `AUTH_URL` — NextAuth
+- `VECTOR_DB_URL` — conexão do Postgres (pgvector)
 
 ---
 
-### RF-09 — Validação da Saída da IA
-A saída da IA deve ser validada contra um schema fixo antes de ser apresentada ao usuário.
+## Scripts úteis
+
+```bash
+pnpm dev     # roda em modo desenvolvimento
+pnpm build   # build de produção
+pnpm start   # start em produção
+pnpm lint    # biome check
+pnpm format  # biome format --write
+```
 
 ---
 
-### RF-10 — Revisão Humana
-O usuário deve revisar e confirmar a Issue antes da criação no GitHub.
+## Estrutura relevante
 
----
+- `src/server-actions/ai/*` — chamadas de IA e indexação
+- `src/lib/vector-store.ts` — pgvector + embeddings
+- `src/app/api/models/route.ts` — modelos via AI Gateway
+- `src/contexts/model-context.tsx` — contexto global de modelos
 
-### RF-11 — Criação da Issue no GitHub
-O sistema deve criar a Issue via GitHub API somente após confirmação explícita do usuário.
-
----
-
-### RF-12 — Assignees
-Os assignees devem ser selecionados pelo usuário e validados via GitHub API.
-
----
-
-### RF-13 — Logs de Auditoria
-O sistema deve registrar:
-- input do usuário
-- contexto recuperado
-- saída final da IA
-- usuário responsável
-
----
-
-## 4. Requisitos Não Funcionais (RNF)
-
-### RNF-01 — Performance
-- O tempo médio de resposta para geração de Issue não deve exceder limites aceitáveis de UX.
-- Indexação pode ser assíncrona e demorada.
-
----
-
-### RNF-02 — Escalabilidade
-- O sistema deve suportar múltiplos repositórios e usuários.
-- O worker deve escalar independentemente da UI.
-
----
-
-### RNF-03 — Segurança
-- Tokens GitHub com escopo mínimo.
-- Nenhum token sensível deve ser exposto ao frontend.
-- Comunicação interna restrita à rede corporativa.
-
----
-
-### RNF-04 — Confiabilidade
-- Falhas na IA não devem indisponibilizar o sistema.
-- Deve existir fallback para erro de geração.
-
----
-
-### RNF-05 — Auditabilidade
-- Todas as decisões da IA devem ser rastreáveis.
-- O sistema deve permitir auditoria posterior.
-
----
-
-### RNF-06 — Consistência
-- O contexto utilizado pela IA deve ser determinístico.
-- A mesma entrada deve gerar resultados semelhantes, considerando o mesmo commit.
-
----
-
-### RNF-07 — Manutenibilidade
-- Prompt tratado como código e versionado.
-- Separação clara entre UI, orquestração e IA.
-
----
-
-### RNF-08 — Observabilidade
-- Logs estruturados
-- Métricas de latência
-- Métricas de custo por requisição
-
----
-
-### RNF-09 — Governança
-- Feature flag para desligar IA
-- Possibilidade de bloquear repositórios sensíveis
-- Controle de acesso por time
-
----
-
-### RNF-10 — Compliance Organizacional
-- Compatível com políticas internas de segurança
-- Nenhum dado sensível enviado ao LLM sem controle
-
----
-
-## 5. Restrições Técnicas
-
-- Execução em servidor interno da empresa
-- Uso de GitHub.com (organização)
-- Worker implementado em Node.js
-- Next.js para frontend e orquestração
-- Orquestração e integração de LLM via LangChain para suportar múltiplos provedores/modelos
-
----
-
-## 6. Fora de Escopo
-
-- Execução de código
-- Auto-merge
-- Criação automática sem revisão
-- Substituição de refinamento humano
-
----
-
-## 7. Critérios de Sucesso
-
-- Redução do tempo gasto pelo CTO criando issues
-- Melhoria da clareza técnica das demandas
-- Adoção contínua pela equipe
-- Baixo índice de retrabalho
-
----
-
-## 8. Princípios Norteadores
-
-- Engenharia antes de hype
-- IA como assistente, não autoridade
-- Determinismo > autonomia
-- Simplicidade operacional

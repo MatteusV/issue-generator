@@ -1,13 +1,11 @@
 "use server";
 
-import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { ChatOpenAI } from "@langchain/openai";
-
 import { auth } from "@/auth";
+import { DEFAULT_MODEL_ID } from "@/lib/ai/models";
+import { createChatCompletion } from "@/lib/ai/gateway-client";
 import { fallbackIssueDraft, parseIssueDraft } from "@/lib/ai/parse";
 import { buildIssuePrompt } from "@/lib/ai/prompt";
 import { retrieveContext } from "@/lib/ai/retriever";
-import { DEFAULT_MODEL_ID } from "@/lib/ai/models";
 import { fetchRepoContext } from "@/server-actions/ai/fetch-repo-context";
 import type { ChatMessage } from "@/types/chat";
 
@@ -37,10 +35,6 @@ export async function chatIssue(
     return { ok: false, error: "Informe o repositório e a mensagem." };
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    return { ok: false, error: "OPENAI_API_KEY não configurada." };
-  }
-
   const repoContext =
     session.accessToken && repoFullName
       ? await fetchRepoContext(session.accessToken, repoFullName)
@@ -60,28 +54,30 @@ export async function chatIssue(
 
   const modelId = input.modelId?.trim() || DEFAULT_MODEL_ID;
 
-  const model = new ChatOpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+  const historyMessages = input.history.map((msg) => ({
+    role: msg.role === "user" ? "user" : "assistant",
+    content: msg.content,
+  }));
+
+  const completion = await createChatCompletion({
     model: modelId,
+    messages: [
+      { role: "system", content: system },
+      ...historyMessages,
+      { role: "user", content: user },
+    ],
     temperature: 0.2,
   });
 
-  const historyMessages = input.history.map((msg) =>
-    msg.role === "user"
-      ? new HumanMessage(msg.content)
-      : new AIMessage(msg.content),
-  );
+  if (!completion.ok) {
+    return { ok: false, error: completion.error };
+  }
 
-  const response = await model.invoke([
-    new SystemMessage(system),
-    ...historyMessages,
-    new HumanMessage(user),
-  ]);
+  const issue = parseIssueDraft(completion.content);
+  const filled =
+    issue.title || issue.body
+      ? issue
+      : fallbackIssueDraft(completion.content);
 
-  const content =
-    typeof response.content === "string" ? response.content : "";
-  const issue = parseIssueDraft(content);
-  const filled = issue.title || issue.body ? issue : fallbackIssueDraft(content);
-
-  return { ok: true, data: filled, raw: content };
+  return { ok: true, data: filled, raw: completion.content };
 }

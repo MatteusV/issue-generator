@@ -1,9 +1,7 @@
 "use server";
 
-import { ChatOpenAI } from "@langchain/openai";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-
 import { auth } from "@/auth";
+import { createChatCompletion } from "@/lib/ai/gateway-client";
 import { parseIssueDraft } from "@/lib/ai/parse";
 import { buildIssuePrompt } from "@/lib/ai/prompt";
 import { retrieveContext } from "@/lib/ai/retriever";
@@ -33,8 +31,8 @@ export async function generateIssue(
     return { ok: false, error: "Informe o repositório e a descrição." };
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    return { ok: false, error: "OPENAI_API_KEY não configurada." };
+  if (!process.env.AI_GATEWAY_API_KEY) {
+    return { ok: false, error: "AI_GATEWAY_API_KEY não configurada." };
   }
 
   const repoContext =
@@ -54,20 +52,20 @@ export async function generateIssue(
     retrievedChunks,
   );
 
-  const model = new ChatOpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+  const completion = await createChatCompletion({
     model: "gpt-4o-mini",
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
     temperature: 0.2,
   });
 
-  const response = await model.invoke([
-    new SystemMessage(system),
-    new HumanMessage(user),
-  ]);
+  if (!completion.ok) {
+    return { ok: false, error: completion.error };
+  }
 
-  const content =
-    typeof response.content === "string" ? response.content : "";
-  const issue = parseIssueDraft(content);
+  const issue = parseIssueDraft(completion.content);
 
   return { ok: true, data: issue };
 }

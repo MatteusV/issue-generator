@@ -27,8 +27,8 @@ export async function reindexRepo(
     return { ok: false, error: "Sessão expirada. Faça login novamente." };
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    return { ok: false, error: "OPENAI_API_KEY não configurada." };
+  if (!process.env.AI_GATEWAY_API_KEY) {
+    return { ok: false, error: "AI_GATEWAY_API_KEY não configurada." };
   }
 
   const files = await listRepoFiles(accessToken, repoFullName);
