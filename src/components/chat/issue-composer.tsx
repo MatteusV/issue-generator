@@ -264,8 +264,9 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
       </Conversation>
       <PromptInput onSubmit={handlePromptSubmit}>
         <PromptInputHeader>
-          <div className="flex w-full flex-wrap items-center gap-3">
-            <div className="flex flex-1 flex-col gap-2">
+          <div className="flex w-full flex-col gap-4">
+            <div className="grid w-full gap-3 lg:grid-cols-2">
+              <div className="flex flex-col gap-2">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/50">
                 Repositório
               </p>
@@ -279,26 +280,28 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
                 Apenas repositórios que você pode acessar aparecem aqui.
               </p>
             </div>
-            {isLoadingAssignees ? (
-              <div className="rounded-md border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs text-foreground/60">
-                Carregando responsáveis...
-              </div>
-            ) : assigneeOptions.length > 0 ? (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/50">
-                  Responsáveis
-                </p>
-                <AssigneeSelector
-                  assignees={assigneeOptions}
-                  value={assignees}
-                  onChange={setAssignees}
-                />
-                <p className="text-xs text-foreground/60">
-                  Selecione uma ou mais pessoas para atribuir a issue.
-                </p>
-              </div>
-            ) : null}
-            <div className="flex flex-1 flex-col gap-2">
+              {isLoadingAssignees ? (
+                <div className="rounded-md border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs text-foreground/60">
+                  Carregando responsáveis...
+                </div>
+              ) : assigneeOptions.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/50">
+                    Responsáveis
+                  </p>
+                  <AssigneeSelector
+                    assignees={assigneeOptions}
+                    value={assignees}
+                    onChange={setAssignees}
+                  />
+                  <p className="text-xs text-foreground/60">
+                    Selecione uma ou mais pessoas para atribuir a issue.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+            <div className="grid w-full gap-3 lg:grid-cols-2">
+              <div className="flex flex-col gap-2">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/50">
                 Projeto do GitHub
               </p>
@@ -313,7 +316,7 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
                 Opcional: adiciona a issue criada ao projeto selecionado.
               </p>
             </div>
-            <div className="flex flex-1 flex-col gap-2">
+              <div className="flex flex-col gap-2">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/50">
                 Modelo de IA
               </p>
@@ -361,13 +364,14 @@ export function IssueComposer({ repositories, projects }: IssueComposerProps) {
                 Escolha o modelo que gera a issue.
               </p>
             </div>
+            </div>
           </div>
         </PromptInputHeader>
         <PromptInputBody>
           <div className="p-4 w-full h-full">
             <PromptInputTextarea
               className="border rounded-2xl py-10 px-4"
-              placeholder="EX: Cria uma issue para desenvolver o crud de usuário e o sistema de autenticação"
+              placeholder="Descreva o objetivo, contexto e critérios de aceite. Ex.: Implementar CRUD de usuários com autenticação, validações e testes."
               value={description}
               onChange={(event) => setDescription(event.target.value)}
             />
