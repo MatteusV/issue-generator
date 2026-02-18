@@ -31,7 +31,8 @@ export async function reindexRepo(
     return { ok: false, error: "AI_GATEWAY_API_KEY não configurada." };
   }
 
-  const files = await listRepoFiles(accessToken, repoFullName);
+  const files: { path: string; size: number; url: string }[] =
+    await listRepoFiles(accessToken, repoFullName);
   console.log(
     `[reindex] repo=${repoFullName} filesFiltered=${files.length} elapsedMs=${
       Date.now() - startedAt
@@ -56,6 +57,24 @@ export async function reindexRepo(
 
   async function processFile(index: number) {
     const file = files[index];
+    if (!file) {
+      console.error(
+        `[reindex] repo=${repoFullName} missing file at index=${index}`,
+      );
+      setReindexProgress(repoFullName, {
+        processed: index + 1,
+      });
+      return;
+    }
+    if (!file.url) {
+      console.error(
+        `[reindex] repo=${repoFullName} missing url path=${file.path}`,
+      );
+      setReindexProgress(repoFullName, {
+        processed: index + 1,
+      });
+      return;
+    }
     const fetchStart = Date.now();
     console.log(
       `[reindex] repo=${repoFullName} fetchFile start path=${file.path} (${index + 1}/${
@@ -97,7 +116,6 @@ export async function reindexRepo(
       return;
     }
 
-    const embedStart = Date.now();
     console.log(
       `[reindex] repo=${repoFullName} enqueue chunks path=${file.path} chunks=${chunks.length}`,
     );
@@ -132,7 +150,10 @@ export async function reindexRepo(
     }
   }
 
-  const workers = Array.from({ length: Math.min(CONCURRENCY, files.length) }, worker);
+  const workers = Array.from(
+    { length: Math.min(CONCURRENCY, files.length) },
+    worker,
+  );
   try {
     await Promise.all(workers);
   } catch (error) {

@@ -45,7 +45,7 @@ export async function retrieveContext(
       return acc;
     }
     acc.push({
-      content: doc.content,
+      content: doc.pageContent ?? "",
       path: (doc.metadata.path as string) ?? "",
       startLine: (doc.metadata.startLine as number) ?? 0,
       endLine: (doc.metadata.endLine as number) ?? 0,

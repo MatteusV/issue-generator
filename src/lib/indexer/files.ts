@@ -37,14 +37,18 @@ type RepoFile = {
 function isAllowed(path: string, size?: number) {
   const lowered = path.toLowerCase();
 
-  if (IGNORE_PREFIXES.some((prefix) => lowered.startsWith(prefix))) return false;
+  if (IGNORE_PREFIXES.some((prefix) => lowered.startsWith(prefix)))
+    return false;
   if (!ALLOWED_EXTENSIONS.some((ext) => lowered.endsWith(ext))) return false;
   if (typeof size === "number" && size > MAX_FILE_BYTES) return false;
 
   return true;
 }
 
-export async function listRepoFiles(accessToken: string, repoFullName: string) {
+export async function listRepoFiles(
+  accessToken: string,
+  repoFullName: string,
+): Promise<RepoFile[]> {
   const response = await fetch(
     `https://api.github.com/repos/${repoFullName}/git/trees/HEAD?recursive=1`,
     {
@@ -78,18 +82,22 @@ export async function listRepoFiles(accessToken: string, repoFullName: string) {
     })
     .sort((a, b) => b.score - a.score);
 
-  const files = scored
-    .slice(0, MAX_FILES)
-    .map<RepoFile>((file) => ({
-      path: file.path,
-      size: file.size ?? 0,
-      url: `https://raw.githubusercontent.com/${repoFullName}/HEAD/${file.path}`,
-    }));
+  const files = scored.slice(0, MAX_FILES).map<RepoFile>((file) => ({
+    path: file.path,
+    size: file.size ?? 0,
+    url: `https://raw.githubusercontent.com/${repoFullName}/HEAD/${file.path}`,
+  }));
 
   return files;
 }
 
-export async function fetchFileContent(accessToken: string, url: string) {
+export async function fetchFileContent(
+  accessToken: string | undefined,
+  url: string,
+) {
+  if (typeof accessToken === "undefined") {
+    throw new Error("Sessão expirada. Faça login novamente.");
+  }
   try {
     const response = await fetch(url, {
       headers: {
@@ -100,7 +108,9 @@ export async function fetchFileContent(accessToken: string, url: string) {
     });
 
     if (!response.ok) {
-      console.error(`[fetchFileContent] failed status=${response.status} url=${url}`);
+      console.error(
+        `[fetchFileContent] failed status=${response.status} url=${url}`,
+      );
       return "";
     }
 

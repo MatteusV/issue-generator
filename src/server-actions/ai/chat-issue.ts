@@ -54,8 +54,8 @@ export async function chatIssue(
 
   const modelId = input.modelId?.trim() || DEFAULT_MODEL_ID;
 
-  const historyMessages = input.history.map((msg) => ({
-    role: msg.role === "user" ? "user" : "assistant",
+  const historyMessages: ChatMessage[] = input.history.map((msg) => ({
+    role: msg.role,
     content: msg.content,
   }));
 
